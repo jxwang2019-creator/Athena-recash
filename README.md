@@ -1,5 +1,10 @@
 # hackathon
 
+flutter build needs a fix.
+
+Can run: flutter build apk -release to build an apk in build\app\outputs\flutter-apk
+To test on phone: you need an adroid phone to install apk and run it.
+
 A new Flutter project.
 
 ## Getting Started
