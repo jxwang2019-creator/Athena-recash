@@ -13,6 +13,8 @@ dependencies {
     implementation 'org.tensorflow:tensorflow-lite:2.14.0'
     implementation 'org.tensorflow:tensorflow-lite-gpu:2.14.0'
 
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation "androidx.core:core-ktx:1.16.0"
     // Flutter engine
 //    implementation 'io.flutter:flutter_embedding_release:1.0.0-fac0f5d3ac4aba57529696ea9699a46b16315f5f'
 }
