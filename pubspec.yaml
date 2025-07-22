@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.5.4
+  sdk: ^3.8.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -30,10 +30,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  camera: ^0.10.0+1
-  google_mlkit_image_labeling: ^0.13.0  # 保持原版本
-  google_mlkit_face_detection: ^0.12.0  # 降级人脸检测
-  google_mlkit_face_mesh_detection: ^0.3.0  # Critical for embeddings
+  camera: ^0.11.2
+  google_mlkit_image_labeling: ^0.14.1  # 保持原版本
+  google_mlkit_face_detection: ^0.13.1  # 降级人脸检测
+  google_mlkit_face_mesh_detection: ^0.4.1  # Critical for embeddings
   image_picker: ^1.1.2  # For fallback registration
   tflite_flutter: ^0.11.0
   image: ^4.5.4  # For image conversion
@@ -41,15 +41,15 @@ dependencies:
 
   shared_preferences: ^2.2.2
   flutter_svg: ^2.0.7
-  intl: ^0.18.1
-  permission_handler: ^10.4.0
+  intl: ^0.20.2
+  permission_handler: ^12.0.1
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   dartz: ^0.10.1
   crypto: ^3.0.2
-  uuid: ^3.0.7
+  uuid: ^4.5.1
 
 dev_dependencies:
   flutter_test:
@@ -60,7 +60,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^4.0.0
+  flutter_lints: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -14,7 +14,7 @@ dependencies {
     implementation 'org.tensorflow:tensorflow-lite-gpu:2.14.0'
 
     // Flutter engine
-    implementation 'io.flutter:flutter_embedding_release:1.0.0-fac0f5d3ac4aba57529696ea9699a46b16315f5f'
+//    implementation 'io.flutter:flutter_embedding_release:1.0.0-fac0f5d3ac4aba57529696ea9699a46b16315f5f'
 }
 
 android {
