@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hackathon/screen/chat_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../model/face_account.dart';
@@ -62,6 +63,17 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _openChatPopup() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => ChatScreen()
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -107,6 +119,17 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildAccountCard(),
           SizedBox(height: 30),
           _buildActionButtons(),
+          Spacer(),
+          ElevatedButton.icon(
+            onPressed: _openChatPopup,
+            icon: Icon(Icons.chat),
+            label: Text('Ask Athena'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blueAccent,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 20.0),
+            )
+          )
         ],
       ),
     );
@@ -188,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
           label: 'Deposit',
           onPressed: isGuest ? null : () => _showDepositDialog(context),
           disabled: isGuest,
-        ),
+        )
       ],
     );
   }
