@@ -7,6 +7,7 @@ import '../widget/qr_code_scanner_widget.dart';
 import 'dart:async'; // Import for Timer
 import 'package:http/http.dart' as http; // Import for making HTTP requests
 import 'dart:convert'; // Import for JSON decoding
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -53,6 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (_currentAccount != null && _currentAccount!.accountNumber != 'GUEST') {
           _checkExternalBalance();
           _startBalanceCheckTimer();
+          _totalTransferAmount = await loadTransferredAmount();
         }
       }
     } catch (e) {
@@ -570,6 +572,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   await _updateBalance(_currentAccount!.balance - amount);
                   _totalTransferAmount += amount;
+                  saveTransferredAmount(_totalTransferAmount);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Transferred \$${amount.toStringAsFixed(2)}')),
                   );
@@ -581,6 +584,16 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
     );
+  }
+
+  Future<void> saveTransferredAmount(double amount) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('transferredAmount', amount);
+  }
+
+  Future<double> loadTransferredAmount() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble('transferredAmount') ?? 0.0;
   }
 
   /// Shows a dialog for depositing money.
