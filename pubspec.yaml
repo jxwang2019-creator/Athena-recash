@@ -51,6 +51,11 @@ dependencies:
   crypto: ^3.0.2
   uuid: ^4.5.1
 
+  # chatbot
+  stts: ^1.2.4
+  http: ^1.4.0
+  flutter_dotenv: ^5.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -70,6 +75,7 @@ flutter:
   assets:
     - assets/mobilefacenet.tflite
     - assets/user_avatar.png
+    - .env # Make sure this path is correct
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

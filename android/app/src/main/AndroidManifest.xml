@@ -7,6 +7,11 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO"  />
+    <uses-permission android:name="android.permission.INTERNET"  />
+    <!-- For MIUI background audio -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- 对于 Android 10+ 可能需要添加 -->
     <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
 
@@ -14,6 +19,12 @@
         <!-- 允许查询能处理拍照意图的应用 -->
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
         </intent>
 
         <!-- 如果需要访问其他类型的应用，可以添加更多查询 -->

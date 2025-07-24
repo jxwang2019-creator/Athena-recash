@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../model/face_account.dart';
+import '../widget/ai_chatbot_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -62,6 +61,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _showAIChatbotDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => const AIChatbotDialog(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -118,7 +124,6 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            // Display full name
             Text(
               _currentAccount!.fullName,
               style: TextStyle(
@@ -127,8 +132,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             SizedBox(height: 10),
-
-            // Display phone number or ••••••••••
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -141,8 +144,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             SizedBox(height: 10),
-
-            // Existing account info
             Text('Account Number'),
             Text(
               _currentAccount!.accountNumber,
@@ -164,7 +165,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Keep all existing methods exactly as they were
   Widget _buildActionButtons() {
     final isGuest = _currentAccount?.accountNumber == 'GUEST';
 
@@ -187,6 +187,12 @@ class _HomeScreenState extends State<HomeScreen> {
           icon: Icons.account_balance,
           label: 'Deposit',
           onPressed: isGuest ? null : () => _showDepositDialog(context),
+          disabled: isGuest,
+        ),
+        _buildActionButton(
+          icon: Icons.chat,
+          label: 'AI Assistant',
+          onPressed: isGuest ? null : () => _showAIChatbotDialog(context),
           disabled: isGuest,
         ),
       ],
