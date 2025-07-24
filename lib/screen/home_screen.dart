@@ -49,6 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() => _isLoading = false);
         // Start the periodic balance check only if an account is loaded and it's not a 'GUEST' account.
         if (_currentAccount != null && _currentAccount!.accountNumber != 'GUEST') {
+          _checkExternalBalance();
           _startBalanceCheckTimer();
         }
       }
@@ -109,9 +110,9 @@ class _HomeScreenState extends State<HomeScreen> {
         // Using toStringAsFixed(2) for comparison to handle floating point precision issues
         if (newExternalBalance != 0.0) {
           double oldBalance = _currentAccount!.balance;
-          await _updateBalance(oldBalance + newExternalBalance); // Update to the new external balance
+          await _updateBalance(newExternalBalance); // Update to the new external balance
 
-          double balanceChange = newExternalBalance;
+          double balanceChange = newExternalBalance - oldBalance;
           String changeMessage = "";
           if (balanceChange > 0) {
             changeMessage = '+\$${balanceChange.toStringAsFixed(2)} added to your account!';
