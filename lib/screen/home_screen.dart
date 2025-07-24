@@ -326,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _buildActionButton(
           icon: Icons.account_balance,
           label: 'Deposit',
-          onPressed: isGuest ? null: () => _launchDepositUrl(context),
+          onPressed: isGuest ? null: () => _showDepositDialog(context),
           disabled: isGuest,
         ),
         _buildActionButton(
