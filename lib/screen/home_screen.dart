@@ -80,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final String? baseUrl = dotenv.env['GCP_BASE_URL'];
-      final String? fixedPath = dotenv.env['GCP_BANK_FIXED_PATH'];
+      final String? fixedPath = dotenv.env['GCP_AGENT_FIXED_PATH'];
       // Validate that environment variables are loaded
       if (baseUrl == null || fixedPath == null) {
         return; // Exit if configuration is missing
@@ -191,19 +191,34 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('My Bank Account'),
-        actions: [
-          // Show logout button only if it's not a GUEST account
-          if (_currentAccount?.accountNumber != 'GUEST')
-            IconButton(
-              icon: Icon(Icons.logout),
-              onPressed: _logout,
-            ),
-        ],
+    // Wrapping with WillPopScope to ensure explicit handling if needed,
+    // though dispose() already covers timer cancellation on pop.
+    return PopScope( // Use PopScope for newer Flutter versions (Flutter 3.12+)
+      canPop: true, // Allow the back button to function normally
+      onPopInvoked: (bool didPop) {
+        if (didPop) {
+          // This block will be called when the user attempts to pop the route,
+          // including pressing the system back button.
+          // The timer cancellation is already handled in dispose(),
+          // so explicit cancellation here is redundant but demonstrates the callback.
+          // _balanceCheckTimer?.cancel(); // Already in dispose(), so not strictly necessary here
+          print("HomeScreen popped. Timer handled by dispose().");
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('My Bank Account'),
+          actions: [
+            // Show logout button only if it's not a GUEST account
+            if (_currentAccount?.accountNumber != 'GUEST')
+              IconButton(
+                icon: Icon(Icons.logout),
+                onPressed: _logout,
+              ),
+          ],
+        ),
+        body: _buildBody(),
       ),
-      body: _buildBody(),
     );
   }
 
