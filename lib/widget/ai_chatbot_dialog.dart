@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:stts/stts.dart';
 import 'package:http/http.dart' as http;
+
+import '../model/face_account.dart';
 
 class AIChatbotDialog extends StatefulWidget {
   const AIChatbotDialog({Key? key}) : super(key: key);
@@ -49,13 +53,15 @@ class _AIChatbotDialogState extends State<AIChatbotDialog> {
           return;
         }
         final defaultLanguage = availableLanguages.firstWhere(
-              (lang) => lang.toLowerCase().contains('en-us'),
+          (lang) => lang.toLowerCase().contains('en-us'),
           orElse: () => availableLanguages.first,
         );
         await _stt.android?.downloadModel(defaultLanguage);
         _stt.android?.onDownloadModelEnd((String msg, int? errorCode) {
-          if(errorCode == null) {
-            _addBotMessage("Successfully download $defaultLanguage for speech recognition");
+          if (errorCode == null) {
+            _addBotMessage(
+              "Successfully download $defaultLanguage for speech recognition",
+            );
           } else {
             _addBotMessage("Speech state error: $errorCode, $msg");
           }
@@ -94,21 +100,23 @@ class _AIChatbotDialogState extends State<AIChatbotDialog> {
           },
         );
 
-        _resultSubscription = _stt.onResultChanged.listen((result) {
-          if (mounted) {
-            setState(() => _currentSpeechResult = result.text);
-            if (result.isFinal && _currentSpeechResult.isNotEmpty) {
-              _submitSpeechResult();
+        _resultSubscription = _stt.onResultChanged.listen(
+          (result) {
+            if (mounted) {
+              setState(() => _currentSpeechResult = result.text);
+              if (result.isFinal && _currentSpeechResult.isNotEmpty) {
+                _submitSpeechResult();
+              }
             }
-          }
-        }, onError: (err) {
-          _addBotMessage("Recognition error: $err");
-        });
+          },
+          onError: (err) {
+            _addBotMessage("Recognition error: $err");
+          },
+        );
 
         if (!await _stt.isSupported()) {
           _addBotMessage("Speech recognition not supported");
         }
-
       } else {
         _addBotMessage("Microphone permission not granted");
       }
@@ -174,6 +182,10 @@ class _AIChatbotDialogState extends State<AIChatbotDialog> {
         _isButtonPressed = true;
         _currentSpeechResult = '';
       });
+      Future.delayed(Duration(milliseconds: 1000), () {
+        // Now try to start listening
+        // ... your listen call ...
+      });
       await _stt.start();
     } catch (e) {
       if (mounted) {
@@ -211,27 +223,73 @@ class _AIChatbotDialogState extends State<AIChatbotDialog> {
   }
 
   Future<void> _sendToAPI(String message) async {
+    // Ensure the widget is still mounted before proceeding
     if (!mounted) return;
 
+    // Set loading state to true to show a loading indicator
     setState(() => _isLoading = true);
 
     try {
-      final response = await http.post(
-        Uri.parse('https://jsonplaceholder.typicode.com/posts'),
-        body: {'title': 'User Message', 'body': message, 'userId': '1'},
+      // Retrieve base URL and fixed path from environment variables
+      // Make sure these keys (GCP_BASE_URL, GCP_FIXED_PATH) match your .env file
+      final String? baseUrl = dotenv.env['GCP_BASE_URL'];
+      final String? fixedPath = dotenv.env['GCP_FIXED_PATH'];
+
+      // Validate that environment variables are loaded
+      if (baseUrl == null || fixedPath == null) {
+        _addBotMessage(
+          "Configuration Error: GCP_BASE_URL or GCP_FIXED_PATH not found in .env",
+        );
+        return; // Exit if configuration is missing
+      }
+      final String? accountNumber =
+          AccountManager.currentAccount?.accountNumber;
+      // Construct the full URL with the fixed path and chatText query parameter
+      // The message will be URL-encoded automatically by Uri.https
+      final Uri uri = Uri.https(
+        baseUrl,
+        // Host (e.g., athena-adk-recash-193587434015.asia-southeast1.run.app)
+        'recash-agent-get/$fixedPath$accountNumber',
+        // Unencoded path (e.g., recash-agent-get/ASDF5000)
+        {'chatText': message}, // Query parameters (chatText=Hello)
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        _addBotMessage(
-          "API Response: I received your message about '$message'.\n"
-          "Mock response: ${response.body.length} characters received.",
-        );
+      // Make an HTTP GET request to the constructed URL
+      final response = await http.get(uri);
+
+      // Check the response status code
+      if (response.statusCode == 200) {
+        // If the request was successful, add the bot's response
+        try {
+          // Decode the JSON response body
+          final Map<String, dynamic> jsonResponse = json.decode(response.body);
+
+          // Extract the 'chatText' part from the JSON response
+          final String? aiChatText = jsonResponse['chatText'];
+
+          if (aiChatText != null) {
+            _addBotMessage("AI response: $aiChatText");
+          } else {
+            _addBotMessage(
+              "API Response: 'chatText' not found in response. Full response: ${response.body}",
+            );
+          }
+        } catch (e) {
+          _addBotMessage(
+            "API Error: Failed to parse JSON response. Full response: ${response.body}. Error: $e",
+          );
+        }
       } else {
-        _addBotMessage("API Error: Status code ${response.statusCode}");
+        // If the request failed, add an error message with the status code
+        _addBotMessage(
+          "API Error: Status code ${response.statusCode}. Response body: ${response.body}",
+        );
       }
     } catch (e) {
+      // Catch any network or other errors and display them
       _addBotMessage("Network error: ${e.toString()}");
     } finally {
+      // Ensure the loading state is reset, only if the widget is still mounted
       if (mounted) {
         setState(() => _isLoading = false);
       }

@@ -75,6 +75,7 @@ flutter:
   assets:
     - assets/mobilefacenet.tflite
     - assets/user_avatar.png
+    - .env # Make sure this path is correct
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

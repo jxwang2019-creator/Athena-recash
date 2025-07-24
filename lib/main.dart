@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hackathon/screen/home_screen.dart';
 import 'package:hackathon/screen/login_screen.dart';
 import 'package:hackathon/screen/register_screen.dart';
@@ -9,13 +10,12 @@ List<CameraDescription> cameras = [];
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  await dotenv.load(fileName: ".env");
   try {
     cameras = await availableCameras();
   } catch (e) {
     print("Camera initialization error: $e");
   }
-
   runApp(const MyApp());
 }
 
