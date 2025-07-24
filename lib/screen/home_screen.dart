@@ -188,7 +188,6 @@ class _HomeScreenState extends State<HomeScreen> {
         _buildActionButton(
           icon: Icons.account_balance,
           label: 'Deposit',
-          // onPressed: isGuest ? null : () => _showDepositDialog(context),
           onPressed: isGuest ? null: () => _launchDepositUrl(context),
           disabled: isGuest,
         ),
@@ -309,45 +308,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showDepositDialog(BuildContext context) {
-    final amountController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Deposit Money'),
-        content: TextField(
-          controller: amountController,
-          decoration: InputDecoration(labelText: 'Amount'),
-          keyboardType: TextInputType.number,
-        ),
-        actions: [
-          TextButton(
-            child: Text('Cancel'),
-            onPressed: () => Navigator.pop(context),
-          ),
-          TextButton(
-            child: Text('Deposit'),
-            onPressed: () async {
-              final amount = double.tryParse(amountController.text) ?? 0;
-              if (amount > 0) {
-                await _updateBalance(_currentAccount!.balance + amount);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Deposited \$${amount.toStringAsFixed(2)}')),
-                );
-                Navigator.pop(context);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Please enter a valid amount')),
-                );
-              }
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
   void _launchDepositUrl(BuildContext context) {
     final String? baseUrl = dotenv.env['GCP_BASE_URL'];
     final String? fixedPath = dotenv.env['GCP_FIXED_PATH'];
@@ -361,11 +321,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final Uri depositUri = Uri.https(
       baseUrl,
       '/user-qrcode/$fixedPath$accountNumber',
-    );
-
-    final Uri depositCallbackUri = Uri.https(
-      baseUrl,
-      '/bank-mock/$fixedPath$accountNumber',
     );
 
     Navigator.push(
