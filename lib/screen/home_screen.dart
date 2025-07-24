@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../model/face_account.dart';
 import '../widget/ai_chatbot_dialog.dart';
+import 'dart:async'; // Import for Timer
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -10,6 +11,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   FaceAccount? _currentAccount;
+  Timer? _balanceCheckTimer; // Declares a Timer to periodically check for external balance updates
+
+  // This variable is used to simulate a changing external balance for demonstration purposes.
+  // In a real application, this would be replaced by actual data from an API.
+  double _externalBalanceSimulationCounter = 0.0;
 
   @override
   void initState() {
@@ -17,50 +23,130 @@ class _HomeScreenState extends State<HomeScreen> {
     _initializeAccount();
   }
 
+  @override
+  void dispose() {
+    // Cancel the timer when the widget is disposed to prevent memory leaks
+    // and ensure no operations are attempted on a non-existent widget.
+    _balanceCheckTimer?.cancel();
+    super.dispose();
+  }
+
   Future<void> _initializeAccount() async {
     try {
       await AccountManager.init();
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(Duration(milliseconds: 100)); // Simulate a small delay for initialization
 
       _currentAccount = AccountManager.currentAccount;
 
+      // If no account is found after initialization, navigate back to the login screen.
       if (_currentAccount == null && mounted) {
         Navigator.pushReplacementNamed(context, '/');
         return;
       }
 
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        // Start the periodic balance check only if an account is loaded and it's not a 'GUEST' account.
+        if (_currentAccount != null && _currentAccount!.accountNumber != 'GUEST') {
+          _startBalanceCheckTimer();
+        }
+      }
     } catch (e) {
+      // If an error occurs during initialization, navigate back to the login screen.
       if (mounted) Navigator.pushReplacementNamed(context, '/');
     }
   }
 
+  /// Starts a periodic timer to check for external balance updates.
+  /// The check occurs every 5 seconds.
+  void _startBalanceCheckTimer() {
+    // First, cancel any existing timer to avoid multiple timers running simultaneously.
+    _balanceCheckTimer?.cancel();
+    _balanceCheckTimer = Timer.periodic(Duration(seconds: 5), (timer) {
+      _checkExternalBalance();
+    });
+  }
+
+  /// Simulates an API call to check for an external balance.
+  /// If a non-zero external balance is found, it's added to the current account balance.
+  Future<void> _checkExternalBalance() async {
+    // Do not proceed if there's no current account or if it's a guest account.
+    // Also, cancel the timer if these conditions are met.
+    if (_currentAccount == null || _currentAccount!.accountNumber == 'GUEST') {
+      _balanceCheckTimer?.cancel();
+      return;
+    }
+
+    try {
+      // Simulate an API call delay. In a real application, this would be a network request
+      // to a backend service that provides external balance updates.
+      await Future.delayed(Duration(seconds: 1)); // Simulate network delay
+
+      // --- Start of External Balance Simulation ---
+      // This section simulates receiving a balance from an external API.
+      // In a production app, you would replace this with actual API integration.
+      _externalBalanceSimulationCounter += 0.5; // Increment a counter for simulation
+      double externalBalance = 0.0;
+      // For demonstration, we'll add a fixed amount every 10 seconds (on every second check).
+      // This makes the balance change noticeable but not on every 5-second interval.
+      if ((_externalBalanceSimulationCounter * 10).toInt() % 10 == 0) {
+        externalBalance = 10.0; // Example: a fixed amount from an external source
+      } else {
+        externalBalance = 0.0; // No change in other intervals
+      }
+      // --- End of External Balance Simulation ---
+
+      // If the simulated external balance is not zero, update the account balance.
+      if (externalBalance != 0.0) {
+        print('External balance detected: \$${externalBalance.toStringAsFixed(2)}');
+        await _updateBalance(_currentAccount!.balance + externalBalance);
+
+        // Show a temporary message to the user indicating the balance update.
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('+\$${externalBalance.toStringAsFixed(2)} added from external source!')),
+          );
+        }
+      }
+    } catch (e) {
+      // Log any errors that occur during the external balance check.
+      print('Error checking external balance: $e');
+      // In a real application, you might want to show an error message to the user
+      // or implement retry logic.
+    }
+  }
+
+  /// Updates the current account's balance and saves the changes.
   Future<void> _updateBalance(double newBalance) async {
     if (_currentAccount == null) return;
 
     setState(() {
       _currentAccount!.balance = newBalance;
-      AccountManager.currentAccount?.balance = newBalance;
+      AccountManager.currentAccount?.balance = newBalance; // Also update in AccountManager
     });
 
-    await AccountManager.saveAccounts();
+    await AccountManager.saveAccounts(); // Persist the updated balance
   }
 
+  /// Logs out the current user, cancels the balance check timer,
+  /// and navigates back to the login screen.
   Future<void> _logout() async {
-    AccountManager.currentAccount = null;
+    _balanceCheckTimer?.cancel(); // Cancel timer on logout
+    AccountManager.currentAccount = null; // Clear the current account
     Navigator.of(context).pushNamedAndRemoveUntil(
       '/',
-          (Route<dynamic> route) => false,
+          (Route<dynamic> route) => false, // Remove all routes from the stack
     );
 
     if (mounted) {
       setState(() {
-        _currentAccount = null;
-        _isLoading = true;
+        _currentAccount = null; // Clear local account state
+        _isLoading = true; // Reset loading state
       });
     }
   }
 
+  /// Shows the AI Chatbot dialog.
   void _showAIChatbotDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -74,6 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text('My Bank Account'),
         actions: [
+          // Show logout button only if it's not a GUEST account
           if (_currentAccount?.accountNumber != 'GUEST')
             IconButton(
               icon: Icon(Icons.logout),
@@ -85,6 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Builds the main body of the screen based on loading state and account presence.
   Widget _buildBody() {
     if (_isLoading) {
       return Center(child: CircularProgressIndicator());
@@ -118,8 +206,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Builds the card displaying account details.
   Widget _buildAccountCard() {
     return Card(
+      elevation: 4, // Add a subtle shadow
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), // Rounded corners
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -127,35 +218,48 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(
               _currentAccount!.fullName,
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 22, // Slightly larger font
                 fontWeight: FontWeight.bold,
+                color: Colors.blueGrey[800],
               ),
             ),
             SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.phone, size: 16),
-                SizedBox(width: 5),
+                Icon(Icons.phone, size: 18, color: Colors.grey[600]),
+                SizedBox(width: 8),
                 Text(
                   _currentAccount!.phoneNumber ?? '••••••••••',
-                  style: TextStyle(fontSize: 16),
+                  style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                 ),
               ],
             ),
-            SizedBox(height: 10),
-            Text('Account Number'),
+            SizedBox(height: 15),
+            Divider(), // Visual separator
+            SizedBox(height: 15),
+            Text(
+              'Account Number',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            ),
             Text(
               _currentAccount!.accountNumber,
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Colors.blueGrey[700],
+              ),
             ),
             SizedBox(height: 20),
-            Text('Available Balance'),
+            Text(
+              'Available Balance',
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            ),
             Text(
               '\$${_currentAccount!.balance.toStringAsFixed(2)}',
               style: TextStyle(
-                fontSize: 24,
-                color: Colors.green,
+                fontSize: 28, // Larger balance display
+                color: Colors.green[700], // Darker green for emphasis
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -165,6 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Builds the row of action buttons.
   Widget _buildActionButtons() {
     final isGuest = _currentAccount?.accountNumber == 'GUEST';
 
@@ -199,6 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Helper widget to build individual action buttons.
   Widget _buildActionButton({
     required IconData icon,
     required String label,
@@ -213,6 +319,15 @@ class _HomeScreenState extends State<HomeScreen> {
           decoration: BoxDecoration(
             color: disabled ? Colors.grey[200] : Colors.blue[50],
             borderRadius: BorderRadius.circular(35),
+            boxShadow: [
+              if (!disabled) // Add shadow only if not disabled
+                BoxShadow(
+                  color: Colors.blue.withOpacity(0.2),
+                  spreadRadius: 2,
+                  blurRadius: 5,
+                  offset: Offset(0, 3),
+                ),
+            ],
           ),
           child: IconButton(
             icon: Icon(icon,
@@ -222,11 +337,18 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         SizedBox(height: 8),
-        Text(label, style: TextStyle(fontSize: 14)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: disabled ? Colors.grey : Colors.black87,
+          ),
+        ),
       ],
     );
   }
 
+  /// Shows a dialog for adding people to the account.
   void _showAddPeopleDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -243,6 +365,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Shows a dialog for transferring money.
   void _showTransferDialog(BuildContext context) {
     final amountController = TextEditingController();
     final accountController = TextEditingController();
@@ -258,13 +381,20 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 TextField(
                   controller: amountController,
-                  decoration: InputDecoration(labelText: 'Amount'),
+                  decoration: InputDecoration(
+                    labelText: 'Amount',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
                   keyboardType: TextInputType.number,
-                  onChanged: (_) => setState(() {}),
+                  onChanged: (_) => setState(() {}), // Rebuild to update button state if needed
                 ),
+                SizedBox(height: 15),
                 TextField(
                   controller: accountController,
-                  decoration: InputDecoration(labelText: 'Account Number'),
+                  decoration: InputDecoration(
+                    labelText: 'Account Number',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
                   keyboardType: TextInputType.number,
                 ),
               ],
@@ -274,7 +404,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Text('Cancel'),
                 onPressed: () => Navigator.pop(context),
               ),
-              TextButton(
+              ElevatedButton( // Use ElevatedButton for primary action
                 child: Text('Transfer'),
                 onPressed: () async {
                   final amount = double.tryParse(amountController.text) ?? 0;
@@ -306,6 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Shows a dialog for depositing money.
   void _showDepositDialog(BuildContext context) {
     final amountController = TextEditingController();
 
@@ -315,7 +446,10 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text('Deposit Money'),
         content: TextField(
           controller: amountController,
-          decoration: InputDecoration(labelText: 'Amount'),
+          decoration: InputDecoration(
+            labelText: 'Amount',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
           keyboardType: TextInputType.number,
         ),
         actions: [
@@ -323,7 +457,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Text('Cancel'),
             onPressed: () => Navigator.pop(context),
           ),
-          TextButton(
+          ElevatedButton( // Use ElevatedButton for primary action
             child: Text('Deposit'),
             onPressed: () async {
               final amount = double.tryParse(amountController.text) ?? 0;
