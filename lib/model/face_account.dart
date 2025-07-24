@@ -19,7 +19,7 @@ class FaceAccount {
     required this.accountId,
     required this.fullName,
     this.phoneNumber,
-    this.balance = 100.0,
+    this.balance = 0.0,
     required this.embeddings,
     DateTime? createdAt,
     DateTime? lastAccessed,
