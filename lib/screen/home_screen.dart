@@ -18,7 +18,6 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   FaceAccount? _currentAccount;
   Timer? _balanceCheckTimer; // Declares a Timer to periodically check for external balance updates
-  double _totalTransferAmount = 0.0;
 
 
   @override
@@ -54,7 +53,6 @@ class _HomeScreenState extends State<HomeScreen> {
         if (_currentAccount != null && _currentAccount!.accountNumber != 'GUEST') {
           _checkExternalBalance();
           _startBalanceCheckTimer();
-          _totalTransferAmount = await loadTransferredAmount();
         }
       }
     } catch (e) {
@@ -114,9 +112,9 @@ class _HomeScreenState extends State<HomeScreen> {
         // Using toStringAsFixed(2) for comparison to handle floating point precision issues
         if (newExternalBalance != 0.0) {
           double oldBalance = _currentAccount!.balance;
-          await _updateBalance(newExternalBalance - _totalTransferAmount); // Update to the new external balance
+          await _updateBalance(newExternalBalance - (_currentAccount?.totalTransferAmount ?? 0)); // Update to the new external balance
 
-          double balanceChange = newExternalBalance - oldBalance - _totalTransferAmount;
+          double balanceChange = newExternalBalance - oldBalance - (_currentAccount?.totalTransferAmount ?? 0);
           String changeMessage = "";
           if (balanceChange > 0) {
             changeMessage = '+\$${balanceChange.toStringAsFixed(2)} added to your account!';
@@ -571,8 +569,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   }
 
                   await _updateBalance(_currentAccount!.balance - amount);
-                  _totalTransferAmount += amount;
-                  saveTransferredAmount(_totalTransferAmount);
+                  setState(() {
+                    _currentAccount!.totalTransferAmount += amount;
+                  });
+                  AccountManager.updateAccount(_currentAccount!);
+                  await AccountManager.saveAccounts();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Transferred \$${amount.toStringAsFixed(2)}')),
                   );
@@ -584,16 +585,6 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
     );
-  }
-
-  Future<void> saveTransferredAmount(double amount) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('transferredAmount', amount);
-  }
-
-  Future<double> loadTransferredAmount() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getDouble('transferredAmount') ?? 0.0;
   }
 
   /// Shows a dialog for depositing money.
