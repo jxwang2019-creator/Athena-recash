@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../model/face_account.dart';
 import '../widget/ai_chatbot_dialog.dart';
 import '../widget/deposit_qr_widget.dart';
+import '../widget/qr_code_scanner_widget.dart';
 import 'dart:async'; // Import for Timer
 import 'package:http/http.dart' as http; // Import for making HTTP requests
 import 'dart:convert'; // Import for JSON decoding
@@ -16,6 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   FaceAccount? _currentAccount;
   Timer? _balanceCheckTimer; // Declares a Timer to periodically check for external balance updates
+  double _totalTransferAmount = 0.0;
 
 
   @override
@@ -110,9 +112,9 @@ class _HomeScreenState extends State<HomeScreen> {
         // Using toStringAsFixed(2) for comparison to handle floating point precision issues
         if (newExternalBalance != 0.0) {
           double oldBalance = _currentAccount!.balance;
-          await _updateBalance(newExternalBalance); // Update to the new external balance
+          await _updateBalance(newExternalBalance - _totalTransferAmount); // Update to the new external balance
 
-          double balanceChange = newExternalBalance - oldBalance;
+          double balanceChange = newExternalBalance - oldBalance - _totalTransferAmount;
           String changeMessage = "";
           if (balanceChange > 0) {
             changeMessage = '+\$${balanceChange.toStringAsFixed(2)} added to your account!';
@@ -415,6 +417,76 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Shows a dialog for transferring money.
+  // void _showTransferDialog(BuildContext context) {
+  //   final amountController = TextEditingController();
+  //   final accountController = TextEditingController();
+  //
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) => StatefulBuilder(
+  //       builder: (context, setState) {
+  //         return AlertDialog(
+  //           title: Text('Transfer Money'),
+  //           content: Column(
+  //             mainAxisSize: MainAxisSize.min,
+  //             children: [
+  //               TextField(
+  //                 controller: amountController,
+  //                 decoration: InputDecoration(
+  //                   labelText: 'Amount',
+  //                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+  //                 ),
+  //                 keyboardType: TextInputType.number,
+  //                 onChanged: (_) => setState(() {}), // Rebuild to update button state if needed
+  //               ),
+  //               SizedBox(height: 15),
+  //               TextField(
+  //                 controller: accountController,
+  //                 decoration: InputDecoration(
+  //                   labelText: 'Account Number',
+  //                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+  //                 ),
+  //                 keyboardType: TextInputType.number,
+  //               ),
+  //             ],
+  //           ),
+  //           actions: [
+  //             TextButton(
+  //               child: Text('Cancel'),
+  //               onPressed: () => Navigator.pop(context),
+  //             ),
+  //             ElevatedButton( // Use ElevatedButton for primary action
+  //               child: Text('Transfer'),
+  //               onPressed: () async {
+  //                 final amount = double.tryParse(amountController.text) ?? 0;
+  //                 if (amount <= 0) {
+  //                   ScaffoldMessenger.of(context).showSnackBar(
+  //                     SnackBar(content: Text('Please enter a valid amount')),
+  //                   );
+  //                   return;
+  //                 }
+  //
+  //                 if (_currentAccount!.balance < amount) {
+  //                   ScaffoldMessenger.of(context).showSnackBar(
+  //                     SnackBar(content: Text('Insufficient funds')),
+  //                   );
+  //                   return;
+  //                 }
+  //
+  //                 await _updateBalance(_currentAccount!.balance - amount);
+  //                 ScaffoldMessenger.of(context).showSnackBar(
+  //                   SnackBar(content: Text('Transferred \$${amount.toStringAsFixed(2)}')),
+  //                 );
+  //                 Navigator.pop(context);
+  //               },
+  //             ),
+  //           ],
+  //         );
+  //       },
+  //     ),
+  //   );
+  // }
+
   void _showTransferDialog(BuildContext context) {
     final amountController = TextEditingController();
     final accountController = TextEditingController();
@@ -435,7 +507,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   keyboardType: TextInputType.number,
-                  onChanged: (_) => setState(() {}), // Rebuild to update button state if needed
+                  onChanged: (_) => setState(() {}),
                 ),
                 SizedBox(height: 15),
                 TextField(
@@ -446,6 +518,31 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   keyboardType: TextInputType.number,
                 ),
+                SizedBox(height: 15),
+                ElevatedButton.icon(
+                  icon: Icon(Icons.qr_code_scanner),
+                  label: Text('Scan QR Code'),
+                  onPressed: () async {
+                    Navigator.pop(context); // Close dialog before opening scanner
+
+                    final scannedData = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => QrCodeScannerWidget(
+                          onScanned: (code) {
+                            Navigator.pop(context, code); // Return scanned QR code
+                          },
+                        ),
+                      ),
+                    );
+
+                    if (scannedData != null && scannedData is String) {
+                      accountController.text = scannedData; // Only fill the account number
+                    }
+
+                    _showTransferDialog(context); // Reopen dialog with updated account
+                  },
+                )
               ],
             ),
             actions: [
@@ -453,7 +550,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Text('Cancel'),
                 onPressed: () => Navigator.pop(context),
               ),
-              ElevatedButton( // Use ElevatedButton for primary action
+              ElevatedButton(
                 child: Text('Transfer'),
                 onPressed: () async {
                   final amount = double.tryParse(amountController.text) ?? 0;
@@ -472,6 +569,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   }
 
                   await _updateBalance(_currentAccount!.balance - amount);
+                  _totalTransferAmount += amount;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Transferred \$${amount.toStringAsFixed(2)}')),
                   );
