@@ -26,6 +26,10 @@
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE" />
         </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+        </intent>
 
         <!-- 如果需要访问其他类型的应用，可以添加更多查询 -->
         <!-- 例如：访问文件管理器 -->

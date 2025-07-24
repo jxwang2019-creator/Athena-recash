@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../model/face_account.dart';
 import '../widget/ai_chatbot_dialog.dart';
+import '../widget/deposit_qr_widget.dart';
 import 'dart:async'; // Import for Timer
 import 'package:http/http.dart' as http; // Import for making HTTP requests
 import 'dart:convert'; // Import for JSON decoding
@@ -325,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _buildActionButton(
           icon: Icons.account_balance,
           label: 'Deposit',
-          onPressed: isGuest ? null : () => _showDepositDialog(context),
+          onPressed: isGuest ? null: () => _launchDepositUrl(context),
           disabled: isGuest,
         ),
         _buildActionButton(
