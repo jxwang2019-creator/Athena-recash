@@ -49,14 +49,19 @@ class _AIChatbotDialogState extends State<AIChatbotDialog> {
           return;
         }
         final defaultLanguage = availableLanguages.firstWhere(
-              (lang) => lang.toLowerCase().contains('cmn'),
+              (lang) => lang.toLowerCase().contains('en-us'),
           orElse: () => availableLanguages.first,
         );
-
+        await _stt.android?.downloadModel(defaultLanguage);
+        _stt.android?.onDownloadModelEnd((String msg, int? errorCode) {
+          if(errorCode == null) {
+            _addBotMessage("Successfully download $defaultLanguage for speech recognition");
+          } else {
+            _addBotMessage("Speech state error: $errorCode, $msg");
+          }
+        });
         await _stt.setLanguage(defaultLanguage);
-
         setState(() => _speechAvailable = true);
-        _addBotMessage("Speech recognition ready. Supported languages: ${availableLanguages.join(', ')}");
 
         _stt.onStateChanged.listen((state) {
           if (mounted) {
@@ -99,6 +104,11 @@ class _AIChatbotDialogState extends State<AIChatbotDialog> {
         }, onError: (err) {
           _addBotMessage("Recognition error: $err");
         });
+
+        if (!await _stt.isSupported()) {
+          _addBotMessage("Speech recognition not supported");
+        }
+
       } else {
         _addBotMessage("Microphone permission not granted");
       }
@@ -164,9 +174,6 @@ class _AIChatbotDialogState extends State<AIChatbotDialog> {
         _isButtonPressed = true;
         _currentSpeechResult = '';
       });
-
-      // Xiaomi fix: Add delay before starting
-      await Future.delayed(Duration(milliseconds: 300)); // ⚠️ Critical for MIUI
       await _stt.start();
     } catch (e) {
       if (mounted) {
