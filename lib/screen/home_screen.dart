@@ -326,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _buildActionButton(
           icon: Icons.account_balance,
           label: 'Deposit',
-          onPressed: isGuest ? null: () => _showDepositDialog(context),
+          onPressed: isGuest ? null: () => _launchDepositUrl(context),
           disabled: isGuest,
         ),
         _buildActionButton(
@@ -472,44 +472,27 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Shows a dialog for depositing money.
-  void _showDepositDialog(BuildContext context) {
-    final amountController = TextEditingController();
+  void _launchDepositUrl(BuildContext context) {
+    final String? baseUrl = dotenv.env['GCP_BASE_URL'];
+    final String? fixedPath = dotenv.env['GCP_FIXED_PATH'];
+    final String? accountNumber = AccountManager.currentAccount?.accountNumber;
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Deposit Money'),
-        content: TextField(
-          controller: amountController,
-          decoration: InputDecoration(
-            labelText: 'Amount',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-          keyboardType: TextInputType.number,
+    if (baseUrl == null || fixedPath == null || accountNumber == null) {
+      print('Missing config for deposit URL');
+      return;
+    }
+
+    final Uri depositUri = Uri.https(
+      baseUrl,
+      '/user-qrcode/$fixedPath$accountNumber',
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DepositQrWidget(
+            url: depositUri.toString()
         ),
-        actions: [
-          TextButton(
-            child: Text('Cancel'),
-            onPressed: () => Navigator.pop(context),
-          ),
-          ElevatedButton( // Use ElevatedButton for primary action
-            child: Text('Deposit'),
-            onPressed: () async {
-              final amount = double.tryParse(amountController.text) ?? 0;
-              if (amount > 0) {
-                await _updateBalance(_currentAccount!.balance + amount);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Deposited \$${amount.toStringAsFixed(2)}')),
-                );
-                Navigator.pop(context);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Please enter a valid amount')),
-                );
-              }
-            },
-          ),
-        ],
       ),
     );
   }
