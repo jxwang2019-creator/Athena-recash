@@ -49,6 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() => _isLoading = false);
         // Start the periodic balance check only if an account is loaded and it's not a 'GUEST' account.
         if (_currentAccount != null && _currentAccount!.accountNumber != 'GUEST') {
+          _checkExternalBalance();
           _startBalanceCheckTimer();
         }
       }
