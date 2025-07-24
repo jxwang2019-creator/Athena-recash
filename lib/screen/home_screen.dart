@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../model/face_account.dart';
 import '../widget/ai_chatbot_dialog.dart';
 import 'dart:async'; // Import for Timer
+import 'package:http/http.dart' as http; // Import for making HTTP requests
+import 'dart:convert'; // Import for JSON decoding
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -13,9 +16,6 @@ class _HomeScreenState extends State<HomeScreen> {
   FaceAccount? _currentAccount;
   Timer? _balanceCheckTimer; // Declares a Timer to periodically check for external balance updates
 
-  // This variable is used to simulate a changing external balance for demonstration purposes.
-  // In a real application, this would be replaced by actual data from an API.
-  double _externalBalanceSimulationCounter = 0.0;
 
   @override
   void initState() {
@@ -67,8 +67,8 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  /// Simulates an API call to check for an external balance.
-  /// If a non-zero external balance is found, it's added to the current account balance.
+  /// Makes an API call to check for an external balance using the provided URL structure.
+  /// The local balance is synchronized with the external balance if it changes.
   Future<void> _checkExternalBalance() async {
     // Do not proceed if there's no current account or if it's a guest account.
     // Also, cancel the timer if these conditions are met.
@@ -78,41 +78,75 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     try {
-      // Simulate an API call delay. In a real application, this would be a network request
-      // to a backend service that provides external balance updates.
-      await Future.delayed(Duration(seconds: 1)); // Simulate network delay
-
-      // --- Start of External Balance Simulation ---
-      // This section simulates receiving a balance from an external API.
-      // In a production app, you would replace this with actual API integration.
-      _externalBalanceSimulationCounter += 0.5; // Increment a counter for simulation
-      double externalBalance = 0.0;
-      // For demonstration, we'll add a fixed amount every 10 seconds (on every second check).
-      // This makes the balance change noticeable but not on every 5-second interval.
-      if ((_externalBalanceSimulationCounter * 10).toInt() % 10 == 0) {
-        externalBalance = 10.0; // Example: a fixed amount from an external source
-      } else {
-        externalBalance = 0.0; // No change in other intervals
+      final String? baseUrl = dotenv.env['GCP_BASE_URL'];
+      final String? fixedPath = dotenv.env['GCP_BANK_FIXED_PATH'];
+      // Validate that environment variables are loaded
+      if (baseUrl == null || fixedPath == null) {
+        return; // Exit if configuration is missing
       }
-      // --- End of External Balance Simulation ---
+      final String? accountNumber =
+          AccountManager.currentAccount?.accountNumber;
+      // Construct the full URL with the fixed path and chatText query parameter
+      // The message will be URL-encoded automatically by Uri.https
+      final Uri uri = Uri.https(
+        baseUrl,
+        // Host (e.g., athena-adk-recash-193587434015.asia-southeast1.run.app)
+        'recash-agent-get/$fixedPath$accountNumber',
+      );
 
-      // If the simulated external balance is not zero, update the account balance.
-      if (externalBalance != 0.0) {
-        print('External balance detected: \$${externalBalance.toStringAsFixed(2)}');
-        await _updateBalance(_currentAccount!.balance + externalBalance);
+      // Make an HTTP GET request to the constructed URL
+      final response = await http.get(uri); // Log the URL being checked
 
-        // Show a temporary message to the user indicating the balance update.
+
+      if (response.statusCode == 200) {
+        // Decode the JSON response
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        // Assuming the API returns a 'balance' field. Adjust key as per your API.
+        final double newExternalBalance = (responseData['balance'] as num?)?.toDouble() ?? _currentAccount!.balance;
+
+        // Only update if the external balance is different from the current local balance
+        // Using toStringAsFixed(2) for comparison to handle floating point precision issues
+        if (_currentAccount!.balance.toStringAsFixed(2) != newExternalBalance.toStringAsFixed(2)) {
+          double oldBalance = _currentAccount!.balance;
+          await _updateBalance(newExternalBalance); // Update to the new external balance
+
+          double balanceChange = newExternalBalance - oldBalance;
+          String changeMessage;
+          if (balanceChange > 0) {
+            changeMessage = '+\$${balanceChange.toStringAsFixed(2)} added to your account!';
+          } else if (balanceChange < 0) {
+            changeMessage = '-\$${(-balanceChange).toStringAsFixed(2)} deducted from your account!';
+          } else {
+            changeMessage = 'Balance synchronized. No change.'; // Should not be reached if comparison works
+          }
+
+          print('External balance updated. New balance: \$${newExternalBalance.toStringAsFixed(2)}');
+          // Show a temporary message to the user indicating the balance update.
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(changeMessage), duration: const Duration(seconds: 3)),
+            );
+          }
+        } else {
+          print('External balance is the same as local balance. No update needed.');
+        }
+      } else {
+        // Handle non-200 status codes (e.g., 404, 500)
+        print('Failed to load external balance. Status code: ${response.statusCode}');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('+\$${externalBalance.toStringAsFixed(2)} added from external source!')),
+            SnackBar(content: Text('Failed to get external balance: ${response.statusCode}')),
           );
         }
       }
     } catch (e) {
-      // Log any errors that occur during the external balance check.
+      // Log any errors that occur during the external balance check (e.g., network issues).
       print('Error checking external balance: $e');
-      // In a real application, you might want to show an error message to the user
-      // or implement retry logic.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Network error checking balance.')),
+        );
+      }
     }
   }
 
