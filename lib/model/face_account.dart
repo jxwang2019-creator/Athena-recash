@@ -10,6 +10,7 @@ class FaceAccount {
   final String fullName;
   final String? phoneNumber;
   double balance;
+  double totalTransferAmount;
   final List<List<double>> embeddings;
   final DateTime createdAt;
   DateTime lastAccessed;
@@ -20,6 +21,7 @@ class FaceAccount {
     required this.fullName,
     this.phoneNumber,
     this.balance = 0.0,
+    this.totalTransferAmount = 0.0,
     required this.embeddings,
     DateTime? createdAt,
     DateTime? lastAccessed,
@@ -32,6 +34,7 @@ class FaceAccount {
     'fullName': fullName,
     'phoneNumber': phoneNumber,
     'balance': balance,
+    'totalTransferAmount': totalTransferAmount,
     'embeddings': embeddings,
     'createdAt': createdAt.toIso8601String(),
     'lastAccessed': lastAccessed.toIso8601String(),
@@ -43,6 +46,7 @@ class FaceAccount {
     fullName: json['fullName'],
     phoneNumber: json['phoneNumber'],
     balance: json['balance'],
+    totalTransferAmount: json['totalTransferAmount'].toDouble(),
     embeddings: List<List<double>>.from(
         json['embeddings'].map((e) => List<double>.from(e))),
     createdAt: DateTime.parse(json['createdAt']),
@@ -164,6 +168,14 @@ class AccountManager {
       accounts.map((acc) => jsonEncode(acc.toJson())).toList(),
     );
   }
+
+  static void updateAccount(FaceAccount updatedAccount) {
+    final index = accounts.indexWhere((acc) => acc.accountId == updatedAccount.accountId);
+    if (index != -1) {
+      accounts[index] = updatedAccount;
+    }
+  }
+
 
 
   static String _generateAccountNumber() {
