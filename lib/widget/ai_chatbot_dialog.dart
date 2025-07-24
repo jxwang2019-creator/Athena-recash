@@ -239,7 +239,7 @@ class _AIChatbotDialogState extends State<AIChatbotDialog> {
       final Uri uri = Uri.https(
         baseUrl,
         // Host (e.g., athena-adk-recash-193587434015.asia-southeast1.run.app)
-        'recash-agent-get/$fixedPath$accountNumber',
+        '/$fixedPath/ASDF$accountNumber',
         // Unencoded path (e.g., recash-agent-get/ASDF5000)
         {'chatText': message}, // Query parameters (chatText=Hello)
       );

@@ -92,7 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final Uri uri = Uri.https(
         baseUrl,
         // Host (e.g., athena-adk-recash-193587434015.asia-southeast1.run.app)
-        'recash-agent-get/$fixedPath$accountNumber',
+        '/$fixedPath/ASDF$accountNumber',
       );
 
       // Make an HTTP GET request to the constructed URL
@@ -474,7 +474,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Shows a dialog for depositing money.
   void _launchDepositUrl(BuildContext context) {
     final String? baseUrl = dotenv.env['GCP_BASE_URL'];
-    final String? fixedPath = dotenv.env['GCP_FIXED_PATH'];
+    final String? fixedPath = dotenv.env['GCP_QR_FIXED_PATH'];
     final String? accountNumber = AccountManager.currentAccount?.accountNumber;
 
     if (baseUrl == null || fixedPath == null || accountNumber == null) {
@@ -484,7 +484,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final Uri depositUri = Uri.https(
       baseUrl,
-      '/user-qrcode/$fixedPath$accountNumber',
+      '/$fixedPath/ASDF$accountNumber',
     );
 
     Navigator.push(
