@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../model/face_account.dart';
 import '../widget/ai_chatbot_dialog.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -186,7 +188,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _buildActionButton(
           icon: Icons.account_balance,
           label: 'Deposit',
-          onPressed: isGuest ? null : () => _showDepositDialog(context),
+          // onPressed: isGuest ? null : () => _showDepositDialog(context),
+          onPressed: isGuest ? null: _launchDepositUrl,
           disabled: isGuest,
         ),
         _buildActionButton(
@@ -343,5 +346,28 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  void _launchDepositUrl() async {
+    final String? baseUrl = dotenv.env['GCP_BASE_URL'];
+    final String? fixedPath = dotenv.env['GCP_FIXED_PATH'];
+    final String? accountNumber = AccountManager.currentAccount?.accountNumber;
+
+    if (baseUrl == null || fixedPath == null || accountNumber == null) {
+      print('Missing config for deposit URL');
+      return;
+    }
+
+    final Uri depositUri = Uri.https(
+      baseUrl,
+      '/user-qrcode/$fixedPath$accountNumber', // or whatever deposit endpoint
+      // {'source': 'app'}, // optional query param
+    );
+
+    if (await canLaunchUrl(depositUri)) {
+      await launchUrl(depositUri, mode: LaunchMode.externalApplication);
+    } else {
+      print('Could not launch $depositUri');
+    }
   }
 }
