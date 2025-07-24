@@ -107,23 +107,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // Only update if the external balance is different from the current local balance
         // Using toStringAsFixed(2) for comparison to handle floating point precision issues
-        if (_currentAccount!.balance.toStringAsFixed(2) != newExternalBalance.toStringAsFixed(2)) {
+        if (newExternalBalance != 0.0) {
           double oldBalance = _currentAccount!.balance;
-          await _updateBalance(newExternalBalance); // Update to the new external balance
+          await _updateBalance(oldBalance + newExternalBalance); // Update to the new external balance
 
-          double balanceChange = newExternalBalance - oldBalance;
-          String changeMessage;
+          double balanceChange = newExternalBalance;
+          String changeMessage = "";
           if (balanceChange > 0) {
             changeMessage = '+\$${balanceChange.toStringAsFixed(2)} added to your account!';
           } else if (balanceChange < 0) {
             changeMessage = '-\$${(-balanceChange).toStringAsFixed(2)} deducted from your account!';
-          } else {
-            changeMessage = 'Balance synchronized. No change.'; // Should not be reached if comparison works
           }
 
           print('External balance updated. New balance: \$${newExternalBalance.toStringAsFixed(2)}');
           // Show a temporary message to the user indicating the balance update.
-          if (mounted) {
+          if (mounted && changeMessage.isNotEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(changeMessage), duration: const Duration(seconds: 3)),
             );
