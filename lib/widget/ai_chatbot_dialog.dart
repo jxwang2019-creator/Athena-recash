@@ -56,16 +56,6 @@ class _AIChatbotDialogState extends State<AIChatbotDialog> {
           (lang) => lang.toLowerCase().contains('en-us'),
           orElse: () => availableLanguages.first,
         );
-        await _stt.android?.downloadModel(defaultLanguage);
-        _stt.android?.onDownloadModelEnd((String msg, int? errorCode) {
-          if (errorCode == null) {
-            _addBotMessage(
-              "Successfully download $defaultLanguage for speech recognition",
-            );
-          } else {
-            _addBotMessage("Speech state error: $errorCode, $msg");
-          }
-        });
         await _stt.setLanguage(defaultLanguage);
         setState(() => _speechAvailable = true);
 
@@ -233,7 +223,7 @@ class _AIChatbotDialogState extends State<AIChatbotDialog> {
       // Retrieve base URL and fixed path from environment variables
       // Make sure these keys (GCP_BASE_URL, GCP_FIXED_PATH) match your .env file
       final String? baseUrl = dotenv.env['GCP_BASE_URL'];
-      final String? fixedPath = dotenv.env['GCP_FIXED_PATH'];
+      final String? fixedPath = dotenv.env['GCP_AGENT_FIXED_PATH'];
 
       // Validate that environment variables are loaded
       if (baseUrl == null || fixedPath == null) {
