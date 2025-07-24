@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../model/face_account.dart';
 import '../widget/ai_chatbot_dialog.dart';
+import '../widget/deposit_qr_widget.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -189,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
           icon: Icons.account_balance,
           label: 'Deposit',
           // onPressed: isGuest ? null : () => _showDepositDialog(context),
-          onPressed: isGuest ? null: _launchDepositUrl,
+          onPressed: isGuest ? null: () => _launchDepositUrl(context),
           disabled: isGuest,
         ),
         _buildActionButton(
@@ -348,7 +348,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _launchDepositUrl() async {
+  void _launchDepositUrl(BuildContext context) {
     final String? baseUrl = dotenv.env['GCP_BASE_URL'];
     final String? fixedPath = dotenv.env['GCP_FIXED_PATH'];
     final String? accountNumber = AccountManager.currentAccount?.accountNumber;
@@ -360,14 +360,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final Uri depositUri = Uri.https(
       baseUrl,
-      '/user-qrcode/$fixedPath$accountNumber', // or whatever deposit endpoint
-      // {'source': 'app'}, // optional query param
+      '/user-qrcode/$fixedPath$accountNumber',
     );
 
-    if (await canLaunchUrl(depositUri)) {
-      await launchUrl(depositUri, mode: LaunchMode.externalApplication);
-    } else {
-      print('Could not launch $depositUri');
-    }
+    final Uri depositCallbackUri = Uri.https(
+      baseUrl,
+      '/bank-mock/$fixedPath$accountNumber',
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DepositQrWidget(
+            url: depositUri.toString()
+        ),
+      ),
+    );
   }
 }
